@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import type { Client, Product } from "@/lib/db/schema"
+import type { Bank, Client, Product } from "@/lib/db/schema"
 import { formatCurrency } from "@/lib/format"
 import { Plus, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -47,12 +47,18 @@ function emptyItem(): ItemRow {
 export function PoForm({
   clients,
   products,
+  banks,
 }: {
   clients: Client[]
   products: Product[]
+  banks: Bank[]
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
+  const defaultBank = banks.find((b) => b.isDefault) ?? banks[0]
+  const [bankId, setBankId] = useState<string>(
+    defaultBank ? String(defaultBank.id) : "",
+  )
 
   const [poNumber, setPoNumber] = useState("")
   const [pfiNumber, setPfiNumber] = useState("")
@@ -73,6 +79,11 @@ export function PoForm({
   const selectedClient = useMemo(
     () => clients.find((c) => String(c.id) === clientId),
     [clients, clientId],
+  )
+
+  const selectedBank = useMemo(
+    () => banks.find((b) => String(b.id) === bankId),
+    [banks, bankId],
   )
 
   const totals = useMemo(() => {
@@ -143,6 +154,21 @@ export function PoForm({
         countryOfDestination: countryOfDestination || null,
         vessel: vessel || null,
         paymentTerms: paymentTerms || null,
+        bankId: selectedBank?.id ?? null,
+        bankInfo: selectedBank
+          ? {
+              label: selectedBank.label,
+              broker: selectedBank.broker,
+              beneficiaryBank: selectedBank.beneficiaryBank,
+              bankCity: selectedBank.bankCity,
+              swift: selectedBank.swift,
+              agency: selectedBank.agency,
+              beneficiaryName: selectedBank.beneficiaryName,
+              accountIban: selectedBank.accountIban,
+              intermediaryBank: selectedBank.intermediaryBank,
+              intermediarySwift: selectedBank.intermediarySwift,
+            }
+          : null,
         notes: notes || null,
         items: validItems.map((it) => ({
           productId: it.productId,
@@ -258,6 +284,27 @@ export function PoForm({
           </Field>
           <Field label="Condições de pagamento">
             <Input value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} placeholder="100% T/T in advance" />
+          </Field>
+          <Field label="Canal bancário (Payment Instruction)">
+            <Select value={bankId} onValueChange={(v) => setBankId(v ?? "")}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um banco" />
+              </SelectTrigger>
+              <SelectContent>
+                {banks.length === 0 ? (
+                  <SelectItem value="none" disabled>
+                    Nenhum banco cadastrado
+                  </SelectItem>
+                ) : (
+                  banks.map((b) => (
+                    <SelectItem key={b.id} value={String(b.id)}>
+                      {b.label}
+                      {b.isDefault ? " (padrão)" : ""}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
           </Field>
         </CardContent>
       </Card>

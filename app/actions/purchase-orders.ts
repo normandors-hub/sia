@@ -37,6 +37,7 @@ export interface PoInput {
   countryOfDestination?: string | null
   vessel?: string | null
   paymentTerms?: string | null
+  bankId?: number | null
   bankInfo?: unknown
   notes?: string | null
   items: PoItemInput[]
@@ -85,6 +86,7 @@ export async function createPurchaseOrder(input: PoInput) {
       countryOfDestination: input.countryOfDestination ?? null,
       vessel: input.vessel ?? null,
       paymentTerms: input.paymentTerms ?? null,
+      bankId: input.bankId ?? null,
       bankInfo: input.bankInfo ?? null,
       notes: input.notes ?? null,
       totalPackages: totals.totalPackages,

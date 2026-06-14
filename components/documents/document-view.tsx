@@ -1,3 +1,4 @@
+import { COMPANY } from "@/lib/company"
 import type { PoItem, PurchaseOrder } from "@/lib/db/schema"
 import { DOC_TYPES, formatCurrency, formatDateLong, formatNumber } from "@/lib/format"
 import type { DocType } from "@/lib/format"
@@ -145,25 +146,37 @@ function WeightSummary({ po }: { po: PoWithItems }) {
 }
 
 function BankBlock({ po }: { po: PoWithItems }) {
-  const bank = (po.bankInfo ?? {}) as Record<string, string>
-  const entries = Object.entries(bank)
-  if (entries.length === 0) {
+  const bank = (po.bankInfo ?? {}) as Record<string, string | null>
+  const hasBank = bank && (bank.beneficiaryBank || bank.accountIban || bank.swift)
+  if (!hasBank) {
     return (
-      <div className="space-y-0.5 text-neutral-700">
-        <p className="font-semibold">SENBRA EXPORT — Banking details</p>
-        <p>Beneficiary: Senbra Export Ltda.</p>
-        <p>Bank / SWIFT / IBAN / Account: a configurar nas observações do PO</p>
-      </div>
+      <p className="text-neutral-600">
+        Nenhum canal bancário selecionado para este PO. Cadastre/selecione um banco
+        em &quot;Bancos&quot; e vincule ao pedido.
+      </p>
     )
   }
+  const rows: [string, string | null | undefined][] = [
+    ["Câmbio / Corretora", bank.broker],
+    ["Beneficiary Bank", bank.beneficiaryBank],
+    ["Bank City", bank.bankCity],
+    ["SWIFT", bank.swift],
+    ["Agency", bank.agency],
+    ["Beneficiary Name", bank.beneficiaryName],
+    ["Beneficiary Account / IBAN", bank.accountIban],
+    ["Correspondent / Intermediary Bank", bank.intermediaryBank],
+    ["Intermediary SWIFT", bank.intermediarySwift],
+  ]
   return (
-    <div className="space-y-0.5">
-      {entries.map(([k, v]) => (
-        <p key={k}>
-          <span className="text-neutral-500">{k}: </span>
-          {v}
-        </p>
-      ))}
+    <div className="grid grid-cols-1 gap-y-1">
+      {rows
+        .filter(([, v]) => v)
+        .map(([k, v]) => (
+          <p key={k}>
+            <span className="text-neutral-500">{k}: </span>
+            <span className="font-medium">{v}</span>
+          </p>
+        ))}
     </div>
   )
 }
@@ -278,7 +291,7 @@ export function DocumentView({
           <WeightSummary po={po} />
           <p className="mt-6">Yours faithfully,</p>
           <p className="mt-8 border-t border-neutral-400 pt-1 text-[10px] text-neutral-600">
-            SENBRA EXPORT — Authorized signature
+            {COMPANY.legalName} — Authorized signature
           </p>
         </>
       )}

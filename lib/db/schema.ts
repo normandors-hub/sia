@@ -7,7 +7,26 @@ import {
   jsonb,
   timestamp,
   date,
+  boolean,
 } from "drizzle-orm/pg-core"
+
+export const banks = pgTable("banks", {
+  id: serial("id").primaryKey(),
+  label: text("label").notNull(),
+  broker: text("broker"),
+  beneficiaryBank: text("beneficiary_bank"),
+  bankCity: text("bank_city"),
+  swift: text("swift"),
+  agency: text("agency"),
+  beneficiaryName: text("beneficiary_name"),
+  accountIban: text("account_iban"),
+  intermediaryBank: text("intermediary_bank"),
+  intermediarySwift: text("intermediary_swift"),
+  isDefault: boolean("is_default").notNull().default(false),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
 
 export const clients = pgTable("clients", {
   id: serial("id").primaryKey(),
@@ -68,6 +87,7 @@ export const purchaseOrders = pgTable("purchase_orders", {
   countryOfDestination: text("country_of_destination"),
   vessel: text("vessel"),
   paymentTerms: text("payment_terms"),
+  bankId: integer("bank_id"),
   bankInfo: jsonb("bank_info"),
   totalPackages: integer("total_packages"),
   totalVolume: numeric("total_volume"),
@@ -109,6 +129,7 @@ export const documents = pgTable("documents", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
 
+export type Bank = typeof banks.$inferSelect
 export type Client = typeof clients.$inferSelect
 export type Product = typeof products.$inferSelect
 export type PurchaseOrder = typeof purchaseOrders.$inferSelect
