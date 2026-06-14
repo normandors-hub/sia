@@ -3,7 +3,7 @@ export const COMPANY = {
   legalName: "SENBRA INDÚSTRIA E COMÉRCIO DE MADEIRAS LTDA",
   tagline: "INDÚSTRIA E COMÉRCIO DE MADEIRAS",
   addressLines: [
-    "ESTRADA SENGÉS BARRA, KM 2 - S/N - BAIRRO BARRA",
+    "ESTRADA SENGÉS BARRA, KM 2 - S/N - BARRA",
     "SENGÉS / PR - BRAZIL - CEP 84220-000",
   ],
   cnpj: "08.601.284/0001-83",
