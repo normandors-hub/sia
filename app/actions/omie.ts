@@ -11,61 +11,69 @@ export async function syncOmieClients() {
     let page = 1
     let totalPages = 1
     let count = 0
+    const now = new Date()
 
     do {
-      const { items, totalPages: tp } = await listOmieClients(page, 50)
+      const { items, totalPages: tp } = await listOmieClients(page, 500)
       totalPages = tp || 1
 
-      for (const c of items) {
+      const rows = items.map((c) => {
         const phone =
           c.telefone1_ddd || c.telefone1_numero
             ? `${c.telefone1_ddd ?? ""} ${c.telefone1_numero ?? ""}`.trim()
             : null
+        return {
+          omieId: String(c.codigo_cliente_omie),
+          code: c.codigo_cliente_integracao ?? null,
+          name: c.razao_social,
+          fantasyName: c.nome_fantasia ?? null,
+          document: c.cnpj_cpf ?? null,
+          email: c.email ?? null,
+          phone,
+          address: c.endereco ?? null,
+          addressNumber: c.endereco_numero ?? null,
+          complement: c.complemento ?? null,
+          district: c.bairro ?? null,
+          city: c.cidade ?? null,
+          state: c.estado ?? null,
+          zipCode: c.cep ?? null,
+          country: c.pais ?? null,
+          contactName: c.contato ?? null,
+          raw: c,
+          syncedAt: now,
+        }
+      })
 
+      // Insercao em lote, com chunks para nao estourar limite de parametros
+      const chunkSize = 200
+      for (let i = 0; i < rows.length; i += chunkSize) {
+        const chunk = rows.slice(i, i + chunkSize)
+        if (chunk.length === 0) continue
         await db
           .insert(clients)
-          .values({
-            omieId: String(c.codigo_cliente_omie),
-            code: c.codigo_cliente_integracao ?? null,
-            name: c.razao_social,
-            fantasyName: c.nome_fantasia ?? null,
-            document: c.cnpj_cpf ?? null,
-            email: c.email ?? null,
-            phone,
-            address: c.endereco ?? null,
-            addressNumber: c.endereco_numero ?? null,
-            complement: c.complemento ?? null,
-            district: c.bairro ?? null,
-            city: c.cidade ?? null,
-            state: c.estado ?? null,
-            zipCode: c.cep ?? null,
-            country: c.pais ?? null,
-            contactName: c.contato ?? null,
-            raw: c,
-            syncedAt: new Date(),
-          })
+          .values(chunk)
           .onConflictDoUpdate({
             target: clients.omieId,
             set: {
-              name: c.razao_social,
-              fantasyName: c.nome_fantasia ?? null,
-              document: c.cnpj_cpf ?? null,
-              email: c.email ?? null,
-              phone,
-              address: c.endereco ?? null,
-              addressNumber: c.endereco_numero ?? null,
-              complement: c.complemento ?? null,
-              district: c.bairro ?? null,
-              city: c.cidade ?? null,
-              state: c.estado ?? null,
-              zipCode: c.cep ?? null,
-              country: c.pais ?? null,
-              contactName: c.contato ?? null,
-              raw: c,
-              syncedAt: new Date(),
+              name: sql`excluded.name`,
+              fantasyName: sql`excluded.fantasy_name`,
+              document: sql`excluded.document`,
+              email: sql`excluded.email`,
+              phone: sql`excluded.phone`,
+              address: sql`excluded.address`,
+              addressNumber: sql`excluded.address_number`,
+              complement: sql`excluded.complement`,
+              district: sql`excluded.district`,
+              city: sql`excluded.city`,
+              state: sql`excluded.state`,
+              zipCode: sql`excluded.zip_code`,
+              country: sql`excluded.country`,
+              contactName: sql`excluded.contact_name`,
+              raw: sql`excluded.raw`,
+              syncedAt: sql`excluded.synced_at`,
             },
           })
-        count++
+        count += chunk.length
       }
       page++
     } while (page <= totalPages)
@@ -84,41 +92,47 @@ export async function syncOmieProducts() {
     let page = 1
     let totalPages = 1
     let count = 0
+    const now = new Date()
 
     do {
-      const { items, totalPages: tp } = await listOmieProducts(page, 50)
+      const { items, totalPages: tp } = await listOmieProducts(page, 500)
       totalPages = tp || 1
 
-      for (const p of items) {
+      const rows = items.map((p) => ({
+        omieId: String(p.codigo_produto),
+        code: p.codigo ?? null,
+        description: p.descricao,
+        ncm: p.ncm ?? null,
+        unit: p.unidade ?? null,
+        unitPrice: p.valor_unitario != null ? String(p.valor_unitario) : null,
+        netWeight: p.peso_liq != null ? String(p.peso_liq) : null,
+        grossWeight: p.peso_bruto != null ? String(p.peso_bruto) : null,
+        raw: p,
+        syncedAt: now,
+      }))
+
+      const chunkSize = 200
+      for (let i = 0; i < rows.length; i += chunkSize) {
+        const chunk = rows.slice(i, i + chunkSize)
+        if (chunk.length === 0) continue
         await db
           .insert(products)
-          .values({
-            omieId: String(p.codigo_produto),
-            code: p.codigo ?? null,
-            description: p.descricao,
-            ncm: p.ncm ?? null,
-            unit: p.unidade ?? null,
-            unitPrice: p.valor_unitario != null ? String(p.valor_unitario) : null,
-            netWeight: p.peso_liq != null ? String(p.peso_liq) : null,
-            grossWeight: p.peso_bruto != null ? String(p.peso_bruto) : null,
-            raw: p,
-            syncedAt: new Date(),
-          })
+          .values(chunk)
           .onConflictDoUpdate({
             target: products.omieId,
             set: {
-              code: p.codigo ?? null,
-              description: p.descricao,
-              ncm: p.ncm ?? null,
-              unit: p.unidade ?? null,
-              unitPrice: p.valor_unitario != null ? String(p.valor_unitario) : null,
-              netWeight: p.peso_liq != null ? String(p.peso_liq) : null,
-              grossWeight: p.peso_bruto != null ? String(p.peso_bruto) : null,
-              raw: p,
-              syncedAt: new Date(),
+              code: sql`excluded.code`,
+              description: sql`excluded.description`,
+              ncm: sql`excluded.ncm`,
+              unit: sql`excluded.unit`,
+              unitPrice: sql`excluded.unit_price`,
+              netWeight: sql`excluded.net_weight`,
+              grossWeight: sql`excluded.gross_weight`,
+              raw: sql`excluded.raw`,
+              syncedAt: sql`excluded.synced_at`,
             },
           })
-        count++
+        count += chunk.length
       }
       page++
     } while (page <= totalPages)
