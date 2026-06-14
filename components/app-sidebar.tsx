@@ -1,7 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { FileStack, LayoutDashboard, Package, Users } from "lucide-react"
+import { Landmark, LayoutDashboard, Package, Users } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
@@ -9,6 +9,7 @@ const nav = [
   { href: "/", label: "Pedidos (PO)", icon: LayoutDashboard },
   { href: "/clientes", label: "Clientes", icon: Users },
   { href: "/produtos", label: "Produtos", icon: Package },
+  { href: "/bancos", label: "Bancos", icon: Landmark },
 ]
 
 export function AppSidebar() {
@@ -17,11 +18,15 @@ export function AppSidebar() {
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex">
       <div className="flex items-center gap-2 px-5 py-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-          <FileStack className="h-5 w-5" />
+        <div className="flex items-center justify-center rounded-md bg-white px-2 py-1.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/senbra-logo.png"
+            alt="Senbra"
+            className="h-7 w-auto object-contain"
+          />
         </div>
         <div className="leading-tight">
-          <p className="text-sm font-semibold tracking-wide">Senbra</p>
           <p className="text-xs text-sidebar-foreground/60">Export Docs</p>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { getBanks } from "@/app/actions/banks"
 import { getClients, getProducts } from "@/app/actions/omie"
 import { PageHeader } from "@/components/page-header"
 import { PoForm } from "@/components/po-form"
@@ -6,7 +7,11 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
 export default async function NewPoPage() {
-  const [clients, products] = await Promise.all([getClients(), getProducts()])
+  const [clients, products, banks] = await Promise.all([
+    getClients(),
+    getProducts(),
+    getBanks(),
+  ])
 
   return (
     <div>
@@ -20,7 +25,7 @@ export default async function NewPoPage() {
           </Button>
         }
       />
-      <PoForm clients={clients} products={products} />
+      <PoForm clients={clients} products={products} banks={banks} />
     </div>
   )
 }

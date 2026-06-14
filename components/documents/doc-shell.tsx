@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { COMPANY } from "@/lib/company"
 
 // Folha A4 para visualizacao e impressao dos documentos.
 export function DocSheet({ children }: { children: ReactNode }) {
@@ -17,15 +18,24 @@ export function DocHeader({
   subtitle?: string
 }) {
   return (
-    <div className="mb-6 flex items-start justify-between border-b-2 border-neutral-900 pb-4">
-      <div>
-        <p className="text-lg font-bold tracking-tight text-neutral-900">
-          SENBRA EXPORT
+    <div className="mb-6 flex items-start justify-between gap-6 border-b-2 border-neutral-900 pb-4">
+      <div className="max-w-[60%]">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={COMPANY.logo || "/placeholder.svg"}
+          alt={COMPANY.legalName}
+          className="mb-2 h-12 w-auto object-contain"
+        />
+        <p className="text-[10px] font-semibold leading-snug text-neutral-800">
+          {COMPANY.legalName}
         </p>
-        <p className="text-[10px] leading-snug text-neutral-600">
-          International Trade &amp; Export
-          <br />
-          Paranaguá - PR, Brazil
+        {COMPANY.addressLines.map((l) => (
+          <p key={l} className="text-[9px] leading-snug text-neutral-600">
+            {l}
+          </p>
+        ))}
+        <p className="text-[9px] leading-snug text-neutral-600">
+          CNPJ {COMPANY.cnpj} · IE {COMPANY.ie}
         </p>
       </div>
       <div className="text-right">
@@ -61,7 +71,7 @@ export function DocFooter({ text }: { text?: string }) {
   return (
     <div className="mt-8 border-t border-neutral-300 pt-3 text-center text-[9px] text-neutral-500">
       {text ??
-        "SENBRA EXPORT · International Trade · This document was generated electronically."}
+        `${COMPANY.legalName} · ${COMPANY.website} · This document was generated electronically.`}
     </div>
   )
 }
