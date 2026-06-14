@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db"
 import { banks } from "@/lib/db/schema"
-import { desc, eq, ne } from "drizzle-orm"
+import { asc, desc, eq, ne } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
 export interface BankInput {
@@ -21,64 +21,132 @@ export interface BankInput {
 }
 
 export async function getBanks() {
-  return db.select().from(banks).orderBy(desc(banks.isDefault), banks.label)
+  try {
+    return await db
+      .select()
+      .from(banks)
+      .orderBy(desc(banks.isDefault), asc(banks.label))
+  } catch (error) {
+    console.error("Erro ao buscar bancos:", error)
+    throw new Error("Não foi possível carregar os bancos.")
+  }
 }
 
 export async function createBank(input: BankInput) {
-  const [bank] = await db
-    .insert(banks)
-    .values({
-      label: input.label,
-      broker: input.broker ?? null,
-      beneficiaryBank: input.beneficiaryBank ?? null,
-      bankCity: input.bankCity ?? null,
-      swift: input.swift ?? null,
-      agency: input.agency ?? null,
-      beneficiaryName: input.beneficiaryName ?? null,
-      accountIban: input.accountIban ?? null,
-      intermediaryBank: input.intermediaryBank ?? null,
-      intermediarySwift: input.intermediarySwift ?? null,
-      isDefault: input.isDefault ?? false,
-      notes: input.notes ?? null,
-    })
-    .returning()
+  try {
+    const bank = await db.transaction(async (tx) => {
+      // Remove padrão dos demais bancos
+      if (input.isDefault) {
+        await tx.update(banks).set({
+          isDefault: false,
+          updatedAt: new Date(),
+        })
+      }
 
-  if (input.isDefault) {
-    await db.update(banks).set({ isDefault: false }).where(ne(banks.id, bank.id))
+      const [newBank] = await tx
+        .insert(banks)
+        .values({
+          label: input.label.trim(),
+          broker: input.broker ?? null,
+          beneficiaryBank: input.beneficiaryBank ?? null,
+          bankCity: input.bankCity ?? null,
+          swift: input.swift ?? null,
+          agency: input.agency ?? null,
+          beneficiaryName: input.beneficiaryName ?? null,
+          accountIban: input.accountIban ?? null,
+          intermediaryBank: input.intermediaryBank ?? null,
+          intermediarySwift: input.intermediarySwift ?? null,
+          isDefault: input.isDefault ?? false,
+          notes: input.notes ?? null,
+        })
+        .returning()
+
+      return newBank
+    })
+
+    revalidatePath("/bancos")
+
+    return {
+      ok: true,
+      id: bank.id,
+    }
+  } catch (error) {
+    console.error("Erro ao criar banco:", error)
+
+    return {
+      ok: false,
+      error: "Erro ao criar banco.",
+    }
   }
-  revalidatePath("/bancos")
-  return { ok: true, id: bank.id }
 }
 
-export async function updateBank(id: number, input: BankInput) {
-  await db
-    .update(banks)
-    .set({
-      label: input.label,
-      broker: input.broker ?? null,
-      beneficiaryBank: input.beneficiaryBank ?? null,
-      bankCity: input.bankCity ?? null,
-      swift: input.swift ?? null,
-      agency: input.agency ?? null,
-      beneficiaryName: input.beneficiaryName ?? null,
-      accountIban: input.accountIban ?? null,
-      intermediaryBank: input.intermediaryBank ?? null,
-      intermediarySwift: input.intermediarySwift ?? null,
-      isDefault: input.isDefault ?? false,
-      notes: input.notes ?? null,
-      updatedAt: new Date(),
-    })
-    .where(eq(banks.id, id))
+export async function updateBank(
+  id: number,
+  input: BankInput
+) {
+  try {
+    await db.transaction(async (tx) => {
+      // Se este será o padrão, remove dos demais
+      if (input.isDefault) {
+        await tx
+          .update(banks)
+          .set({
+            isDefault: false,
+            updatedAt: new Date(),
+          })
+          .where(ne(banks.id, id))
+      }
 
-  if (input.isDefault) {
-    await db.update(banks).set({ isDefault: false }).where(ne(banks.id, id))
+      await tx
+        .update(banks)
+        .set({
+          label: input.label.trim(),
+          broker: input.broker ?? null,
+          beneficiaryBank: input.beneficiaryBank ?? null,
+          bankCity: input.bankCity ?? null,
+          swift: input.swift ?? null,
+          agency: input.agency ?? null,
+          beneficiaryName: input.beneficiaryName ?? null,
+          accountIban: input.accountIban ?? null,
+          intermediaryBank: input.intermediaryBank ?? null,
+          intermediarySwift: input.intermediarySwift ?? null,
+          isDefault: input.isDefault ?? false,
+          notes: input.notes ?? null,
+          updatedAt: new Date(),
+        })
+        .where(eq(banks.id, id))
+    })
+
+    revalidatePath("/bancos")
+
+    return {
+      ok: true,
+    }
+  } catch (error) {
+    console.error("Erro ao atualizar banco:", error)
+
+    return {
+      ok: false,
+      error: "Erro ao atualizar banco.",
+    }
   }
-  revalidatePath("/bancos")
-  return { ok: true }
 }
 
 export async function deleteBank(id: number) {
-  await db.delete(banks).where(eq(banks.id, id))
-  revalidatePath("/bancos")
-  return { ok: true }
+  try {
+    await db.delete(banks).where(eq(banks.id, id))
+
+    revalidatePath("/bancos")
+
+    return {
+      ok: true,
+    }
+  } catch (error) {
+    console.error("Erro ao excluir banco:", error)
+
+    return {
+      ok: false,
+      error: "Erro ao excluir banco.",
+    }
+  }
 }
