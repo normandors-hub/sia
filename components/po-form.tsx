@@ -1,6 +1,8 @@
 "use client"
 
 import { createPurchaseOrder, type PoItemInput } from "@/app/actions/purchase-orders"
+import type { ParsedPo } from "@/app/actions/import-po"
+import { PoImportDialog } from "@/components/po-import-dialog"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -75,11 +77,62 @@ export function PoForm({
   const [paymentTerms, setPaymentTerms] = useState("")
   const [notes, setNotes] = useState("")
   const [items, setItems] = useState<ItemRow[]>([emptyItem()])
+  const [importedClientName, setImportedClientName] = useState("")
+  const [notifyParty, setNotifyParty] = useState("")
 
   const selectedClient = useMemo(
     () => clients.find((c) => String(c.id) === clientId),
     [clients, clientId],
   )
+
+  function applyParsed(data: ParsedPo) {
+    setPoNumber(data.poNumber ?? "")
+    setPfiNumber(data.pfiNumber ?? "")
+    setInvoiceNumber(data.invoiceNumber ?? "")
+    setIssueDate(data.issueDate ?? "")
+    if (data.currency) setCurrency(data.currency)
+    if (data.incoterm) setIncoterm(data.incoterm)
+    setPortOfLoading(data.portOfLoading ?? "")
+    setPortOfDischarge(data.portOfDischarge ?? "")
+    setFinalDestination(data.finalDestination ?? "")
+    setCountryOfDestination(data.countryOfDestination ?? "")
+    setVessel(data.vessel ?? "")
+    setPaymentTerms(data.paymentTerms ?? "")
+    setNotes(data.notes ?? "")
+    setNotifyParty(data.notifyParty ?? "")
+
+    // Tenta casar o cliente importado com a base existente
+    setImportedClientName(data.clientName ?? "")
+    if (data.clientName) {
+      const target = data.clientName.toLowerCase()
+      const match = clients.find(
+        (c) =>
+          c.name.toLowerCase() === target ||
+          c.name.toLowerCase().includes(target) ||
+          target.includes(c.name.toLowerCase()),
+      )
+      setClientId(match ? String(match.id) : "")
+    }
+
+    if (data.items?.length) {
+      setItems(
+        data.items.map((it) => ({
+          _key: crypto.randomUUID(),
+          productId: null,
+          code: it.code ?? "",
+          description: it.description ?? "",
+          ncm: it.ncm ?? "",
+          unit: it.unit ?? "",
+          quantity: it.quantity ?? 0,
+          unitPrice: it.unitPrice ?? 0,
+          volume: it.volume ?? null,
+          netWeight: it.netWeight ?? null,
+          grossWeight: it.grossWeight ?? null,
+          packages: it.packages ?? null,
+        })),
+      )
+    }
+  }
 
   const selectedBank = useMemo(
     () => banks.find((b) => String(b.id) === bankId),
@@ -144,8 +197,9 @@ export function PoForm({
         invoiceNumber: invoiceNumber || null,
         issueDate: issueDate || null,
         clientId: selectedClient?.id ?? null,
-        clientName: selectedClient?.name ?? null,
+        clientName: selectedClient?.name ?? (importedClientName || null),
         clientSnapshot: selectedClient ?? null,
+        notifyParty: notifyParty || null,
         incoterm,
         currency,
         portOfLoading: portOfLoading || null,
@@ -196,6 +250,18 @@ export function PoForm({
 
   return (
     <div className="space-y-6 p-6">
+      <div className="flex flex-col gap-3 rounded-lg border border-dashed border-border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-medium text-foreground">
+            Recebeu o PO por e-mail?
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Importe o PDF e os campos serão preenchidos automaticamente para revisão.
+          </p>
+        </div>
+        <PoImportDialog onParsed={applyParsed} />
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Dados do Pedido</CardTitle>
@@ -232,6 +298,11 @@ export function PoForm({
                 )}
               </SelectContent>
             </Select>
+            {importedClientName && !selectedClient ? (
+              <p className="mt-1.5 text-xs text-accent">
+                Importado: {importedClientName} (não encontrado na base — será salvo como texto)
+              </p>
+            ) : null}
           </Field>
           <Field label="Moeda">
             <Select value={currency} onValueChange={(v) => setCurrency(v ?? "USD")}>
@@ -284,6 +355,9 @@ export function PoForm({
           </Field>
           <Field label="Condições de pagamento">
             <Input value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} placeholder="100% T/T in advance" />
+          </Field>
+          <Field label="Notify party (adicional)">
+            <Input value={notifyParty} onChange={(e) => setNotifyParty(e.target.value)} placeholder="International Forest Products LLC..." />
           </Field>
           <Field label="Canal bancário (Payment Instruction)">
             <Select value={bankId} onValueChange={(v) => setBankId(v ?? "")}>
