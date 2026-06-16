@@ -1,13 +1,9 @@
 "use server"
 
 import { generateText, Output } from "ai"
-import { createOpenRouter } from "@openrouter/ai-sdk-provider"
 import { extractText, getDocumentProxy } from "unpdf"
 import { z } from "zod"
 
-const openrouter = createOpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY,
-})
 
 const itemSchema = z.object({
   code: z.string().nullable(),
