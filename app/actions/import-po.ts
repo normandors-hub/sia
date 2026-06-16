@@ -1,8 +1,13 @@
 "use server"
 
 import { generateText, Output } from "ai"
+import { createAnthropic } from "@ai-sdk/anthropic"
 import { extractText, getDocumentProxy } from "unpdf"
 import { z } from "zod"
+
+const anthropic = createAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+})
 
 const itemSchema = z.object({
   code: z.string().nullable(),
@@ -81,23 +86,18 @@ export async function importPoFromPdf(formData: FormData): Promise<ImportResult>
     }
 
     const { experimental_output } = await generateText({
-      model: "openai/gpt-5.4-mini",
+      model: anthropic("claude-sonnet-4-6"),
       system: SYSTEM_PROMPT,
       prompt: `Texto extraído do PDF de Purchase Order:\n\n"""\n${rawText}\n"""\n\nExtraia os dados estruturados.`,
       experimental_output: Output.object({ schema: poSchema }),
     })
 
     return { ok: true, data: experimental_output, fileName: file.name }
-  } 
-  catch (err) {
-  console.error("[PDF IMPORT ERROR]", err)
-
-  return {
-    ok: false,
-    error:
-      err instanceof Error
-        ? err.stack || err.message
-        : JSON.stringify(err, null, 2),
+  } catch (err) {
+    console.error("[import-po] error:", err instanceof Error ? err.message : err)
+    return {
+      ok: false,
+      error: "Erro ao processar o PDF. Tente novamente.",
+    }
   }
-}
 }
