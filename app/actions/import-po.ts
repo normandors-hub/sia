@@ -82,7 +82,6 @@ export async function importPoFromPdf(formData: FormData): Promise<ImportResult>
     }
 
     const { experimental_output } = await generateText({
-      model: openrouter("google/gemini-2.0-flash-001"),
       system: SYSTEM_PROMPT,
       prompt: `Texto extraído do PDF de Purchase Order:\n\n"""\n${rawText}\n"""\n\nExtraia os dados estruturados.`,
       experimental_output: Output.object({ schema: poSchema }),
