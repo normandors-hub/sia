@@ -1,8 +1,13 @@
 "use server"
 
 import { generateText, Output } from "ai"
+import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { extractText, getDocumentProxy } from "unpdf"
 import { z } from "zod"
+
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+})
 
 const itemSchema = z.object({
   code: z.string().nullable(),
@@ -81,7 +86,7 @@ export async function importPoFromPdf(formData: FormData): Promise<ImportResult>
     }
 
     const { experimental_output } = await generateText({
-      model: "openai/gpt-5.4-mini",
+      model: google("gemini-2.0-flash"),
       system: SYSTEM_PROMPT,
       prompt: `Texto extraído do PDF de Purchase Order:\n\n"""\n${rawText}\n"""\n\nExtraia os dados estruturados.`,
       experimental_output: Output.object({ schema: poSchema }),
@@ -89,7 +94,7 @@ export async function importPoFromPdf(formData: FormData): Promise<ImportResult>
 
     return { ok: true, data: experimental_output, fileName: file.name }
   } catch (err) {
-    console.log("[v0] importPoFromPdf error:", err instanceof Error ? err.message : err)
+    console.error("[import-po] error:", err instanceof Error ? err.message : err)
     return {
       ok: false,
       error: "Erro ao processar o PDF. Tente novamente.",
