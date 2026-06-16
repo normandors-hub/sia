@@ -1,16 +1,13 @@
 "use server"
 
 import { generateText, Output } from "ai"
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
+import { createOpenAI } from "@ai-sdk/openai"
 import { extractText, getDocumentProxy } from "unpdf"
 import { z } from "zod"
 
-const openrouter = createOpenAICompatible({
-  name: "openrouter",
+const openrouter = createOpenAI({
   baseURL: "https://openrouter.ai/api/v1",
-  headers: {
-    Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-  },
+  apiKey: process.env.OPENROUTER_API_KEY ?? "",
 })
 
 const itemSchema = z.object({
