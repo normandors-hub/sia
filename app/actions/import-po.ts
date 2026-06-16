@@ -1,6 +1,7 @@
 "use server"
 
 import { generateText, Output } from "ai"
+import { createOpenAIICompatible } from "ai-sdk//openai-compaatible"
 import { extractText, getDocumentProxy } from "unpdf"
 import { z } from "zod"
 
