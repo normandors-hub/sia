@@ -1,10 +1,17 @@
 "use server"
 
 import { generateText, Output } from "ai"
-import { createOpenAIICompatible } from "ai-sdk//openai-compaatible"
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
 import { extractText, getDocumentProxy } from "unpdf"
 import { z } from "zod"
 
+const openrouter = createOpenAICompatible({
+  name: "openrouter",
+  baseURL: "https://openrouter.ai/api/v1",
+  headers: {
+    Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+  },
+})
 
 const itemSchema = z.object({
   code: z.string().nullable(),
@@ -83,6 +90,7 @@ export async function importPoFromPdf(formData: FormData): Promise<ImportResult>
     }
 
     const { experimental_output } = await generateText({
+      model: openrouter("google/gemini-2.0-flash-001"),
       system: SYSTEM_PROMPT,
       prompt: `Texto extraído do PDF de Purchase Order:\n\n"""\n${rawText}\n"""\n\nExtraia os dados estruturados.`,
       experimental_output: Output.object({ schema: poSchema }),
