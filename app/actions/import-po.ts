@@ -88,11 +88,16 @@ export async function importPoFromPdf(formData: FormData): Promise<ImportResult>
     })
 
     return { ok: true, data: experimental_output, fileName: file.name }
-  } catch (err) {
-    console.log("[v0] importPoFromPdf error:", err instanceof Error ? err.message : err)
-    return {
-      ok: false,
-      error: "Erro ao processar o PDF. Tente novamente.",
-    }
+  } 
+  catch (err) {
+  console.error("[PDF IMPORT ERROR]", err)
+
+  return {
+    ok: false,
+    error:
+      err instanceof Error
+        ? err.stack || err.message
+        : JSON.stringify(err, null, 2),
   }
+}
 }
