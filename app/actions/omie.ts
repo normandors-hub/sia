@@ -6,43 +6,27 @@ import { listOmieClients, listOmieProducts, OmieError } from "@/lib/omie"
 import { sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
-export async function syncOmieClients() {
-  try {
-    let page = 1
-    let totalPages = 1
-    let count = 0
-    const now = new Date()
-
-    do {
-      const { items, totalPages: tp } = await listOmieClients(page, 500)
-      totalPages = tp || 1
-
-      const rows = items.map((c) => {
-        const phone =
-          c.telefone1_ddd || c.telefone1_numero
-            ? `${c.telefone1_ddd ?? ""} ${c.telefone1_numero ?? ""}`.trim()
-            : null
-        return {
-          omieId: String(c.codigo_cliente_omie),
-          code: c.codigo_cliente_integracao ?? null,
-          name: c.razao_social,
-          fantasyName: c.nome_fantasia ?? null,
-          document: c.cnpj_cpf ?? null,
-          email: c.email ?? null,
-          phone,
-          address: c.endereco ?? null,
-          addressNumber: c.endereco_numero ?? null,
-          complement: c.complemento ?? null,
-          district: c.bairro ?? null,
-          city: c.cidade ?? null,
-          state: c.estado ?? null,
-          zipCode: c.cep ?? null,
-          country: c.pais ?? null,
-          contactName: c.contato ?? null,
-          raw: c,
-          syncedAt: now,
-        }
-      })
+export async function getClients(search?: string, page = 1, perPage = 50) {
+  const offset = (page - 1) * perPage
+  if (search) {
+    const term = `%${search.toLowerCase()}%`
+    const items = await db
+      .select()
+      .from(clients)
+      .where(sql`lower(${clients.name}) like ${term} or lower(coalesce(${clients.document}, '')) like ${term}`)
+      .orderBy(clients.name)
+      .limit(perPage)
+      .offset(offset)
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(clients)
+      .where(sql`lower(${clients.name}) like ${term} or lower(coalesce(${clients.document}, '')) like ${term}`)
+    return { items, total: Number(count) }
+  }
+  const items = await db.select().from(clients).orderBy(clients.name).limit(perPage).offset(offset)
+  const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(clients)
+  return { items, total: Number(count) }
+}
 
       // Insercao em lote, com chunks para nao estourar limite de parametros
       const chunkSize = 200

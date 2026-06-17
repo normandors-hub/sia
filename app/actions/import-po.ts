@@ -3,6 +3,10 @@
 import { extractText, getDocumentProxy } from "unpdf"
 import { z } from "zod"
 
+const anthropic = createAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+})
+
 const itemSchema = z.object({
   code: z.string().nullable(),
   description: z.string(),
